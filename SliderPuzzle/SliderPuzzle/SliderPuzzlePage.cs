@@ -163,7 +163,7 @@ namespace SliderPuzzle
             }
         }
 
-        internal class GridItem : Label
+        internal class GridItem : Image
         {
             public GridPosition CurrentPosition
             {
@@ -179,12 +179,13 @@ namespace SliderPuzzle
                 get; set;
             }
 
-            public GridItem(GridPosition position, String text)
+            public GridItem(GridPosition position)
             {
                 _finalPosition = position;
                 CurrentPosition = position;
-                Text = text;
-                if (text.Equals("empty"))
+                Source = ImageSource.FromResource(
+                    "SliderPuzzle.Resources.0-0.jpeg");
+                if (Image.Equals("empty"))
                 {
                     _isEmptySpot = true;
                 }
@@ -192,7 +193,7 @@ namespace SliderPuzzle
                 {
                     _isEmptySpot = false;
                 }
-                TextColor = Color.White;
+               
                 HorizontalOptions = LayoutOptions.Center;
                 VerticalOptions = LayoutOptions.Center;
             }
