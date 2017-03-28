@@ -31,8 +31,16 @@ namespace SliderPuzzle
             {
                 for (var col = 0; col < SIZE; col++)
                 {
-                    GridItem item = new GridItem(new GridPosition(row, col),
-                    counter.ToString());
+                    GridItem item;
+                    if (counter == 16)
+                    {
+                        item = new GridItem(new GridPosition(row, col), "empty");
+                        item.FinalLabel = "16";
+                    }
+                    else
+                    {
+                        item = new GridItem(new GridPosition(row, col), counter.ToString());
+                    }
 
                     //Allows for the numbers to be moved.
 
@@ -40,12 +48,14 @@ namespace SliderPuzzle
                     tapRecognizer.Tapped += OnLabelTapped;
                     item.GestureRecognizers.Add(tapRecognizer);
 
-                    _gridItems.Add(item.Position, item);
+                    _gridItems.Add(item.CurrentPosition, item);
                     _absoluteLayout.Children.Add(item);
 
                     counter++;
                 }
             }
+
+            Shuffle();
 
             ContentView contentView = new ContentView
             {
@@ -75,81 +85,134 @@ namespace SliderPuzzle
         {
             GridItem item = (GridItem)sender;
 
-            Random rand = new Random();
-            int move = rand.Next(0, 4);
+            //Did we click on empty? If so do nothing
 
-            //Adjust random move to account for edges
-            if (move == 0 && item.Position.Row == 0)
+            if (item.isEmptySpot() == true)
             {
-                move = 2;
-            }
-            else if (move == 1 && item.Position.Column == SIZE - 1)
-            {
-                move = 3;
-            }
-            else if (move == 2 && item.Position.Row == SIZE - 1)
-            {
-                move = 0;
-            }
-            else if (move == 3 && item.Position.Column == 0)
-            {
-                move = 1;
+                return;
             }
 
-            int row = 0;
-            int col = 0;
+            //We know we didn't click an empty spot
 
-            if (move == 0) //Move up
-            {
-                row = item.Position.Row - 1;
-                col = item.Position.Column;
-            }
-            else if (move == 1) // Move Right
-            {
-                row = item.Position.Row;
-                col = item.Position.Column + 1;
-            }
-            else if (move == 2) // Move Down
-            {
-                row = item.Position.Row + 1;
-                col = item.Position.Column;
-            }
-            else //Move Left
-            {
-                row = item.Position.Row;
-                col = item.Position.Column - 1;
-            }
+            //Check up, down, left, right until we find empty
 
-            GridItem swapWith = _gridItems[new GridPosition(row, col)];
-            swap(item, swapWith);
+            var counter = 0;
+            while (counter < 4)
+            {
+                GridPosition pos = null;
+                if (counter == 0 && item.CurrentPosition.Row != 0)
+                {
+                    //Get position of square above current item
+                    pos = new GridPosition(item.CurrentPosition.Row - 1, item.CurrentPosition.Column);
+                }
+                else if (counter == 1 && item.CurrentPosition.Column != SIZE - 1)
+                {
+                    //Get position of square above current item
+                    pos = new GridPosition(item.CurrentPosition.Row, item.CurrentPosition.Column + 1);
+                }
+                else if (counter == 2 && item.CurrentPosition.Row != SIZE - 1)
+                {
+                    //Get position of square above current item
+                    pos = new GridPosition(item.CurrentPosition.Row + 1, item.CurrentPosition.Column);
+                }
+                else if (counter == 3 && item.CurrentPosition.Column != 0)
+                {
+                    //Get position of square above current item
+                    pos = new GridPosition(item.CurrentPosition.Row, item.CurrentPosition.Column - 1);
+                }
+
+                if (pos != null) 
+                {
+                    GridItem swapWith = _gridItems[pos];
+                    if (swapWith.isEmptySpot())
+                    {
+                        Swap(item, swapWith);
+                        break; //If we found the empty spot break the loop, no need to check further
+                    }
+                }
+                counter = counter + 1;
+            }
             OnContentViewSizeChanged(this.Content, null);
         }
 
-        void swap(GridItem item1, GridItem item2)
+        void Swap(GridItem item1, GridItem item2)
         {
-            GridPosition temp = item1.Position;
-            item1.Position = item2.Position;
-            item2.Position = temp;
+            GridPosition temp = item1.CurrentPosition;
+            item1.CurrentPosition = item2.CurrentPosition;
+            item2.CurrentPosition = temp;
 
-            _gridItems[item1.Position] = item1;
-            _gridItems[item2.Position] = item2;
+            _gridItems[item1.CurrentPosition] = item1;
+            _gridItems[item2.CurrentPosition] = item2;
+        }
+
+        void Shuffle()
+        {
+            Random rand = new Random();
+            for(var row = 0; row<SIZE; row++)
+            {
+                for(var col=0; col<SIZE; col++)
+                {
+                    GridItem item = _gridItems[new GridPosition(row, col)];
+
+                    int swapRow = rand.Next(0, 4);
+                    int swapCol = rand.Next(0, 4);
+                    GridItem swapItem = _gridItems[new GridPosition(swapRow, swapCol)];
+
+                    Swap(item, swapItem);
+                }
+            }
         }
 
         internal class GridItem : Label
         {
-            public GridPosition Position
+            public GridPosition CurrentPosition
             {
                 get;
                 set;
             }
 
+            private GridPosition _finalPosition;
+            private Boolean _isEmptySpot;
+
+            public String FinalLabel
+            {
+                get; set;
+            }
+
             public GridItem(GridPosition position, String text)
             {
-                Position = position;
+                _finalPosition = position;
+                CurrentPosition = position;
                 Text = text;
+                if (text.Equals("empty"))
+                {
+                    _isEmptySpot = true;
+                }
+                else
+                {
+                    _isEmptySpot = false;
+                }
                 TextColor = Color.White;
                 HorizontalOptions = LayoutOptions.Center;
                 VerticalOptions = LayoutOptions.Center;
+            }
+
+            public Boolean isEmptySpot()
+            {
+                return _isEmptySpot;
+            }
+
+            public void showFinalLabel()
+            {
+                if (isEmptySpot())
+                {
+                    Text = this.FinalLabel;
+                }
+            }
+
+            public Boolean isPositionCorrect()
+            {
+                return _finalPosition.Equals(CurrentPosition);
             }
         }
         internal class GridPosition
