@@ -10,18 +10,20 @@ namespace SliderPuzzle
 {
     public class SliderPuzzlePage : ContentPage
     {
-
+        //Properties
         private const int SIZE = 4;
 
         private AbsoluteLayout _absoluteLayout;
         private Dictionary<GridPosition, GridItem> _gridItems;
 
+        //Constructor
         public SliderPuzzlePage()
         {
+
             _gridItems = new Dictionary<GridPosition, GridItem>();
             _absoluteLayout = new AbsoluteLayout
             {
-                BackgroundColor = Color.Green,
+                BackgroundColor = Color.Blue,
                 HorizontalOptions = LayoutOptions.Center,
                 VerticalOptions = LayoutOptions.Center
             };
@@ -31,10 +33,7 @@ namespace SliderPuzzle
             {
                 for (var col = 0; col < SIZE; col++)
                 {
-                    GridItem item = new GridItem(new GridPosition(row, col),
-                    counter.ToString());
-
-                    //Allows for the numbers to be moved.
+                    GridItem item = new GridItem(new GridPosition(row, col), counter.ToString());
 
                     var tapRecognizer = new TapGestureRecognizer();
                     tapRecognizer.Tapped += OnLabelTapped;
@@ -46,20 +45,20 @@ namespace SliderPuzzle
                     counter++;
                 }
             }
-
             ContentView contentView = new ContentView
             {
                 Content = _absoluteLayout
             };
-
             contentView.SizeChanged += OnContentViewSizeChanged;
             this.Padding = new Thickness(5, Device.OnPlatform(25, 5, 5), 5, 5);
             this.Content = contentView;
+
         }
         void OnContentViewSizeChanged(object sender, EventArgs args)
         {
             ContentView contentView = (ContentView)sender;
             double squareSize = Math.Min(contentView.Width, contentView.Height) / SIZE;
+
             for (var row = 0; row < SIZE; row++)
             {
                 for (var col = 0; col < SIZE; col++)
@@ -99,91 +98,92 @@ namespace SliderPuzzle
             int row = 0;
             int col = 0;
 
-            if (move == 0) //Move up
+            if (move == 0) // move up
             {
                 row = item.Position.Row - 1;
                 col = item.Position.Column;
             }
-            else if (move == 1) // Move Right
+            else if (move == 1) // move right
             {
                 row = item.Position.Row;
                 col = item.Position.Column + 1;
             }
-            else if (move == 2) // Move Down
+            else if (move == 2) // move down
             {
                 row = item.Position.Row + 1;
                 col = item.Position.Column;
             }
-            else //Move Left
+            else // move left
             {
                 row = item.Position.Row;
                 col = item.Position.Column - 1;
             }
 
             GridItem swapWith = _gridItems[new GridPosition(row, col)];
-            swap(item, swapWith);
+            Swap(item, swapWith); // swap selected item with the ra
             OnContentViewSizeChanged(this.Content, null);
         }
 
-        void swap(GridItem item1, GridItem item2)
+        void Swap(GridItem item1, GridItem item2)
         {
             GridPosition temp = item1.Position;
             item1.Position = item2.Position;
             item2.Position = temp;
 
+            //update the dictionary
             _gridItems[item1.Position] = item1;
             _gridItems[item2.Position] = item2;
         }
+    }
 
-        internal class GridItem : Image
+    internal class GridItem : Image
+    {
+        public GridPosition Position
         {
-            public GridPosition Position
-            {
-                get;
-                set;
-            }
-
-            public GridItem(GridPosition position, String text)
-            {
-                Position = position;
-                Source = ImageSource.FromResource(
-                    "SliderPuzzle.Images.0-0.jpeg");
-
-                HorizontalOptions = LayoutOptions.Center;
-                VerticalOptions = LayoutOptions.Center;
-            }
+            get;
+            set;
         }
-        internal class GridPosition
+
+        public GridItem(GridPosition position, String text)
         {
-            public int Row
-            {
-                get; set;
-            }
+            Position = position;
+            //Text = text;
+            //TextColor = Color.White;
+            Source = ImageSource.FromResource(("SliderPuzzle.img") + (text) + (".jpeg"));
+            HorizontalOptions = LayoutOptions.Fill;
+            VerticalOptions = LayoutOptions.Fill;
+        }
+    }
 
-            public int Column
-            {
-                get; set;
-            }
+    internal class GridPosition
+    {
+        public int Row
+        {
+            get; set;
+        }
+        public int Column
+        {
+            get; set;
+        }
+        public GridPosition(int row, int col)
+        {
+            Row = row;
+            Column = col;
+        }
+        public override bool Equals(object obj)
+        {
+            GridPosition other = obj as GridPosition;
 
-            public GridPosition(int row, int col)
+            if (other != null && this.Row == other.Row && this.Column == other.Column)
             {
-                Row = row;
-                Column = col;
+                return true;
             }
+            return false;
+        }
 
-            public override bool Equals(object obj)
-            {
-                GridPosition other = obj as GridPosition;
-                if (other != null && this.Row == other.Row && this.Column == other.Column)
-                {
-                    return true;
-                }
-                return false;
-            }
-            public override int GetHashCode()
-            {
-                return 17 * (23 + this.Row.GetHashCode()) * (23 + this.Column.GetHashCode());
-            }
+        public override int GetHashCode()
+        {
+            return 17 * (23 + this.Row.GetHashCode()) * (23 + this.Column.GetHashCode());
         }
     }
 }
