@@ -31,20 +31,32 @@ namespace SliderPuzzle
             var counter = 1;
             for (var row = 0; row < SIZE; row++)
             {
+
                 for (var col = 0; col < SIZE; col++)
                 {
-                    GridItem item = new GridItem(new GridPosition(row, col), counter.ToString());
-
+                    GridItem item;
+                    if (counter == 16)
+                    {
+                        item = new GridItem(new GridPosition(row, col), "Empty");
+                        // Set property for the image string to grabe the right image and show a soled puzzle
+                        item.ImgPath = "16";
+                    }
+                    else
+                    {
+                        item = new GridItem(new GridPosition(row, col), counter.ToString());
+                    }
                     var tapRecognizer = new TapGestureRecognizer();
                     tapRecognizer.Tapped += OnLabelTapped;
                     item.GestureRecognizers.Add(tapRecognizer);
 
-                    _gridItems.Add(item.Position, item);
+                    _gridItems.Add(item.CurrentPosition, item);
                     _absoluteLayout.Children.Add(item);
 
                     counter++;
                 }
             }
+            Suffle();
+
             ContentView contentView = new ContentView
             {
                 Content = _absoluteLayout
@@ -74,85 +86,159 @@ namespace SliderPuzzle
         {
             GridItem item = (GridItem)sender;
 
-            Random rand = new Random();
-            int move = rand.Next(0, 4);
+            if (item.isEmptySpot() == true)
+            {
+                return;
+            }
 
             //Adjust random move to account for edges
-            if (move == 0 && item.Position.Row == 0)
+            var counter = 0;
+
+            while (counter < 4)
             {
-                move = 2;
-            }
-            else if (move == 1 && item.Position.Column == SIZE - 1)
-            {
-                move = 3;
-            }
-            else if (move == 2 && item.Position.Row == SIZE - 1)
-            {
-                move = 0;
-            }
-            else if (move == 3 && item.Position.Column == 0)
-            {
-                move = 1;
+                GridPosition pos = null;
+                if (counter == 0 && item.CurrentPosition.Row != 0)
+                {
+                    //Get Position of Square above current item
+                    pos = new GridPosition(item.CurrentPosition.Row - 1, item.CurrentPosition.Column);
+                }
+                else if (counter == 1 && item.CurrentPosition.Column != SIZE - 1)
+                {
+                    //Get Position of Square right current item
+                    pos = new GridPosition(item.CurrentPosition.Row, item.CurrentPosition.Column + 1);
+                }
+                else if (counter == 2 && item.CurrentPosition.Row != SIZE - 1)
+                {
+                    //Get Position of Square below current item
+                    pos = new GridPosition(item.CurrentPosition.Row + 1, item.CurrentPosition.Column);
+                }
+                else if (counter == 3 && item.CurrentPosition.Column != 0)
+                {
+                    //Get Position of Square left current item
+                    pos = new GridPosition(item.CurrentPosition.Row, item.CurrentPosition.Column - 1);
+                }
+                if (pos != null)
+                {
+                    GridItem swapWith = _gridItems[pos];
+                    if (swapWith.isEmptySpot())
+                    {
+                        Swap(item, swapWith);
+                        CheckSolved();
+                        break;
+                    }
+                }
+                counter = counter + 1;
             }
 
-            int row = 0;
-            int col = 0;
 
-            if (move == 0) // move up
-            {
-                row = item.Position.Row - 1;
-                col = item.Position.Column;
-            }
-            else if (move == 1) // move right
-            {
-                row = item.Position.Row;
-                col = item.Position.Column + 1;
-            }
-            else if (move == 2) // move down
-            {
-                row = item.Position.Row + 1;
-                col = item.Position.Column;
-            }
-            else // move left
-            {
-                row = item.Position.Row;
-                col = item.Position.Column - 1;
-            }
-
-            GridItem swapWith = _gridItems[new GridPosition(row, col)];
-            Swap(item, swapWith); // swap selected item with the ra
             OnContentViewSizeChanged(this.Content, null);
         }
 
         void Swap(GridItem item1, GridItem item2)
         {
-            GridPosition temp = item1.Position;
-            item1.Position = item2.Position;
-            item2.Position = temp;
+            GridPosition temp = item1.CurrentPosition;
+            item1.CurrentPosition = item2.CurrentPosition;
+            item2.CurrentPosition = temp;
 
             //update the dictionary
-            _gridItems[item1.Position] = item1;
-            _gridItems[item2.Position] = item2;
+            _gridItems[item1.CurrentPosition] = item1;
+            _gridItems[item2.CurrentPosition] = item2;
+
+
         }
+        public void CheckSolved()
+        {
+            bool puzzsolved = true;
+            for (var row = 0; row < 4; row++)
+            {
+                for (var col = 0; col < 4; col++)
+                {
+                    GridItem item = _gridItems[new GridPosition(row, col)];
+                    if (!item.isPositionCorrect())
+                    {
+                        puzzsolved = false;
+                        break;
+                    }
+                }
+            }
+            if (puzzsolved == true)
+            {
+                GridItem item = _gridItems[new GridPosition(3, 3)];
+                item.ShowWinImg();
+            }
+        }
+        void Suffle()
+        {
+            Random rand = new Random();
+            for (var row = 0; row < SIZE; row++)
+            {
+                for (var col = 0; col < SIZE; col++)
+                {
+                    GridItem item = _gridItems[new GridPosition(row, col)];
+
+                    int swapRow = rand.Next(0, 4);
+                    int swapCol = rand.Next(0, 4);
+                    GridItem swapItem = _gridItems[new GridPosition(swapRow, swapCol)];
+
+                    Swap(item, swapItem);
+                }
+            }
+        }
+
+
+
     }
 
     internal class GridItem : Image
     {
-        public GridPosition Position
+        public GridPosition CurrentPosition
         {
             get;
             set;
         }
+        private GridPosition _finalPosition;
+        private Boolean _isEmptySpot;
 
+        public string ImgPath
+        {
+            get; set;
+        }
         public GridItem(GridPosition position, String text)
         {
-            Position = position;
+            _finalPosition = position;
+            CurrentPosition = _finalPosition;
+            if (text.Equals("Empty"))
+            {
+                _isEmptySpot = true;
+            }
+            else
+            {
+                _isEmptySpot = false;
+            }
             //Text = text;
             //TextColor = Color.White;
             Source = ImageSource.FromResource(("SliderPuzzle.img") + (text) + (".jpeg"));
             HorizontalOptions = LayoutOptions.Fill;
             VerticalOptions = LayoutOptions.Fill;
         }
+
+        public Boolean isEmptySpot()
+        {
+            return _isEmptySpot;
+        }
+        public void ShowWinImg()
+        {
+            if (isEmptySpot())
+            {
+                Source = ImageSource.FromResource(("SliderPuzzle.img16.jpeg"));
+            }
+        }
+        public Boolean isPositionCorrect()
+        {
+            return _finalPosition.Equals(CurrentPosition);
+        }
+
+
     }
 
     internal class GridPosition
@@ -187,3 +273,4 @@ namespace SliderPuzzle
         }
     }
 }
+
